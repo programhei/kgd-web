@@ -1,0 +1,25 @@
+{
+  "name": "@vben/backend-mock",
+  "version": "0.0.1",
+  "description": "",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "author": "",
+  "scripts": {
+    "prebuild": "node scripts/copy-dist.js",
+    "build": "nitro build",
+    "start": "nitro dev"
+  },
+  "dependencies": {
+    "@faker-js/faker": "catalog:",
+    "axios": "^1.12.2",
+    "js-cookie": "^3.0.5",
+    "jsonwebtoken": "catalog:",
+    "nitropack": "catalog:"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "catalog:",
+    "h3": "catalog:"
+  }
+}

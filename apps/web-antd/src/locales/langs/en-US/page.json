@@ -1,0 +1,23 @@
+{
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "codeLogin": "Code Login",
+    "qrcodeLogin": "Qr Code Login",
+    "forgetPassword": "Forget Password"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "analytics": "Analytics",
+    "workspace": "Workspace"
+  },
+  "performanceAccuracy": {
+    "title": "Performance Accuracy Assessment",
+    "flightSimulationSystem": "Flight Simulation System Performance Accuracy",
+    "radarSimulationSystem": "Radar Simulation System Performance Accuracy",
+    "missileSimulationSystem": "Missile Simulation System Performance Accuracy",
+    "simulationPerformanceAccuracyNew": "Simulation System Performance Accuracy [New]",
+    "algorithmManage": "Algorithm Configuration Management",
+    "missileTrajectory": "Missile Trajectory Accuracy Assessment"
+  }
+}

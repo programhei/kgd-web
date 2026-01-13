@@ -1,0 +1,62 @@
+{
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "codeLogin": "验证码登录",
+    "qrcodeLogin": "二维码登录",
+    "forgetPassword": "忘记密码"
+  },
+  "dashboard": {
+    "title": "概览",
+    "analytics": "分析页",
+    "workspace": "工作台"
+  },
+  "functionalCompleteness": {
+    "title": "体系功能完备性评估",
+    "flightSimulation": "飞行仿真",
+    "weaponsSystem": "武器系统"
+  },
+  "performanceAccuracy": {
+    "title": "性能准确度评估",
+    "flightSimulationSystem": "飞行仿真系统性能准确度",
+    "radarSimulationSystem": "雷达仿真系统性能准确度",
+    "missileSimulationSystem": "导弹仿真系统性能准确度",
+    "simulationPerformanceAccuracyNew": "仿真系统性能准确度【新】",
+    "algorithmManage": "算法配置管理",
+    "missileTrajectory": "弹道精准度评估"
+  },
+  "scenarioRationality": {
+    "title": "想定合理性评估",
+    "initialTask": "合理性评估",
+    "initialTargetConfiguration": "初始目标配置合理性"
+  },
+  "softwareQuality": {
+    "title": "软件质量评估",
+    "softwareQualityAssessment": "质量评估",
+    "maintainability": "可维护性",
+    "reliability": "可靠性"
+  },
+  "intelligentDecisionModel": {
+    "title": "支持智能决策模型生成维度",
+    "adversarialProcess": "模型生成与评估",
+    "simulationConfrontation": "仿真对抗评估",
+    "supportingIntelligence": "支持智能决策模型生成框架"
+  },
+  "sceneSetQuality": {
+    "title": "总体评估",
+    "scoreDisplay": "得分显示"
+
+  },
+  "dataManagement": {
+    "title": "数据管理",
+    "weightUpdate": "权值更新",
+    "totalScore": "得分显示"
+  },
+  "systemSupport": {
+    "title": "系统支撑",
+    "userPermissionsManagement": "用户权限管理",
+    "dataInterfaceManagement": "数据接口",
+    "evaluateDatabaseManagement": "评估数据库",
+    "userOperationLogs": "用户操作日志"
+  }
+}
