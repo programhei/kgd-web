@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue';
-import { Card, Select, Button, Table, Upload, message, Space, Descriptions, Modal } from 'ant-design-vue';
+import { Card, Select, Button, Table, Upload, message, Space, Descriptions, Modal, Progress, Divider } from 'ant-design-vue';
 import { UploadOutlined, CalculatorOutlined, ZoomInOutlined } from '@ant-design/icons-vue';
 import type { UploadFile, TableColumnsType } from 'ant-design-vue';
 import {
@@ -30,6 +30,11 @@ const testDataList = ref<any[]>([]);
 const standardFileList = ref<UploadFile[]>([]);
 const testFileList = ref<UploadFile[]>([]);
 const performanceAccuracyResult = ref<any>({});
+// 新增批量上传相关
+const batchUploadFileList = ref<UploadFile[]>([]);
+const batchUploading = ref(false);
+const batchUploadProgress = ref(0);
+const batchUploadStatus = ref<{ total: number; success: number; failed: number; current?: string }>({ total: 0, success: 0, failed: 0 });
 // 缓存曲线数据，用于放大查看
 const cachedCurveData = ref<CurveData[]>([]);
 // 最大速度 / 最大加速度表格与图表数据
@@ -1769,6 +1774,18 @@ const getAlgorithmTypeFromFileName = (fileName: string): string => {
   return 'speed';
 };
 
+// 新增根据文件名识别数据类型（0=标准，1=测试）
+const getDataTypeFromFileName = (fileName: string): 0 | 1 => {
+  if (fileName.includes('标准')) {
+    return 0;
+  }
+  if (fileName.includes('测试')) {
+    return 1;
+  }
+  // 默认返回标准数据
+  return 0;
+};
+
 const doUpload = async (file: UploadFile, dataType: 0 | 1, onSuccess: () => void) => {
   const algoType = selectedAlgorithm.value?.type;
   const algoCode = selectedAlgorithm.value?.code;
@@ -1875,6 +1892,127 @@ const handleTestUpload = async () => {
     // 移除 loadTestData() 调用，让 fetchPerformanceAccuracy() 自动更新数据
   });
   // 上传成功后，等待 fetchPerformanceAccuracy() 完成，图表会自动更新
+};
+
+// 新增批量上传单个文件（不依赖selectedAlgorithm）
+const doBatchUploadSingleFile = async (file: UploadFile): Promise<boolean> => {
+  const originFile = ((file as any).originFileObj || file) as File | undefined;
+  if (!originFile || typeof (originFile as any).size === 'undefined') {
+    throw new Error('未获取到文件');
+  }
+
+  try {
+    // 1) 上传文件获取路径（公共上传）
+    const uploadFd = new FormData();
+    uploadFd.append('file', originFile);
+    const uploadRes: any = await uploadPerformanceFile(uploadFd);
+
+    // 优先使用 fileName 字段
+    const path =
+      uploadRes?.data?.fileName ||
+      uploadRes?.fileName ||
+      uploadRes?.data?.path ||
+      uploadRes?.data?.url ||
+      uploadRes?.path ||
+      uploadRes?.url;
+
+    if (!path) {
+      throw new Error('上传失败：未获取到文件路径');
+    }
+
+    // 根据文件名识别算法类型和数据类型
+    const fileName = originFile.name || path;
+    const algorithmDifferentiation = getAlgorithmTypeFromFileName(fileName);
+    const dataType = getDataTypeFromFileName(fileName);
+
+    // 2) 调用后端性能准确度接口
+    const formData = new FormData();
+    formData.append('path', path);
+    formData.append('algorithmDifferentiation', algorithmDifferentiation);
+    formData.append('flag', String(dataType));
+
+    const res: any = await uploadPerformanceAccuracy(formData);
+    return true;
+  } catch (e) {
+    console.error('上传失败:', e);
+    throw e;
+  }
+};
+
+// 批量上传所有文件
+const handleBatchUpload = async () => {
+  if (batchUploadFileList.value.length === 0) {
+    message.warning('请先选择要上传的文件');
+    return;
+  }
+
+  batchUploading.value = true;
+  batchUploadProgress.value = 0;
+  batchUploadStatus.value = {
+    total: batchUploadFileList.value.length,
+    success: 0,
+    failed: 0,
+  };
+
+  const files = batchUploadFileList.value;
+  let successCount = 0;
+  let failedCount = 0;
+
+  // 逐个上传文件
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file) continue;
+    const fileName = (file.name || '') as string;
+    batchUploadStatus.value.current = fileName;
+
+    try {
+      await doBatchUploadSingleFile(file);
+      successCount++;
+      batchUploadStatus.value.success = successCount;
+    } catch (error: any) {
+      failedCount++;
+      batchUploadStatus.value.failed = failedCount;
+      console.error(`文件 ${fileName} 上传失败:`, error);
+    }
+
+    // 更新进度
+    batchUploadProgress.value = Math.round(((i + 1) / files.length) * 100);
+  }
+
+  batchUploading.value = false;
+  batchUploadStatus.value.current = undefined;
+
+  // 显示上传结果
+  if (failedCount === 0) {
+    message.success(`所有文件上传成功！共 ${successCount} 个文件`);
+    // 刷新数据
+    await fetchPerformanceAccuracy();
+  } else {
+    message.warning(`上传完成：成功 ${successCount} 个，失败 ${failedCount} 个`);
+    if (successCount > 0) {
+      // 即使有失败，也刷新数据
+      await fetchPerformanceAccuracy();
+    }
+  }
+
+  // 清空文件列表
+  batchUploadFileList.value = [];
+  batchUploadProgress.value = 0;
+};
+
+// 批量上传文件选择处理
+const handleBatchUploadBeforeUpload = (file: UploadFile) => {
+  batchUploadFileList.value = [...batchUploadFileList.value, file];
+  return false; // 阻止自动上传
+};
+
+// 批量上传文件移除处理
+const handleBatchUploadRemove = (file: UploadFile) => {
+  const index = batchUploadFileList.value.findIndex((item) => item.uid === file.uid);
+  if (index > -1) {
+    batchUploadFileList.value.splice(index, 1);
+  }
+  return true;
 };
 
 // 加载标准数据（使用固定示例数据，x 为时间，y 为标准值）
@@ -2286,7 +2424,52 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <div>
-              <label class="block mb-2 text-sm font-medium">上传数据：</label>
+              <!-- 新增批量上传所有数据集 -->
+              <label class="block mb-2 text-sm font-medium">批量上传所有数据集：</label>
+              <a-space direction="vertical" class="w-full" style="width: 100%">
+                <a-upload
+                  :file-list="batchUploadFileList"
+                  :before-upload="handleBatchUploadBeforeUpload"
+                  :on-remove="handleBatchUploadRemove"
+                  accept=".xlsx,.xls"
+                  multiple
+                >
+                  <a-button type="primary">
+                    <template #icon><UploadOutlined /></template>
+                    选择所有数据集文件
+                  </a-button>
+                </a-upload>
+                <div v-if="batchUploadFileList.length > 0" class="text-xs text-gray-500 mb-2">
+                  已选择 {{ batchUploadFileList.length }} 个文件
+                </div>
+                <a-button 
+                  type="primary" 
+                  :loading="batchUploading"
+                  @click="handleBatchUpload" 
+                  :disabled="!batchUploadFileList.length || batchUploading"
+                  block
+                >
+                  {{ batchUploading ? '上传中...' : '一键上传所有数据集' }}
+                </a-button>
+                <div v-if="batchUploading || batchUploadProgress > 0" class="w-full">
+                  <Progress 
+                    :percent="batchUploadProgress" 
+                    :status="batchUploadProgress === 100 ? 'success' : 'active'"
+                  />
+                  <div v-if="batchUploadStatus.total > 0" class="text-xs text-gray-500 mt-1">
+                    进度：{{ batchUploadStatus.success + batchUploadStatus.failed }} / {{ batchUploadStatus.total }}
+                    <span v-if="batchUploadStatus.success > 0" class="text-green-600">成功：{{ batchUploadStatus.success }}</span>
+                    <span v-if="batchUploadStatus.failed > 0" class="text-red-600 ml-2">失败：{{ batchUploadStatus.failed }}</span>
+                  </div>
+                  <div v-if="batchUploadStatus.current" class="text-xs text-gray-400 mt-1">
+                    当前上传：{{ batchUploadStatus.current }}
+                  </div>
+                </div>
+              </a-space>
+            </div>
+            <a-divider style="margin: 16px 0" />
+            <div>
+              <label class="block mb-2 text-sm font-medium">单个上传（按算法配置）：</label>
               <a-space direction="vertical" class="w-full">
                 <a-upload
                   :file-list="standardFileList"
