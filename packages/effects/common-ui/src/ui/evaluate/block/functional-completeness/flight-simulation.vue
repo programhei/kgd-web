@@ -881,8 +881,8 @@ const scoreTableData = computed(() => {
                   </a-button>
                     </div>
                 </template>
-                  <a-button type="primary" :icon="h(UploadOutlined)"
-                    class="flex-shrink-0 whitespace-nowrap">上传AfSim数据</a-button>
+                  <!-- <a-button type="primary" :icon="h(UploadOutlined)"
+                    class="flex-shrink-0 whitespace-nowrap">上传AfSim数据</a-button> -->
               </a-popover>
               <a-popover v-model:open="visible" trigger="click" placement="bottom">
                 <template #content>
@@ -987,8 +987,8 @@ const scoreTableData = computed(() => {
                       </a-button>
                     </div>
                   </template>
-                  <a-button type="primary" :icon="h(UploadOutlined)"
-                    class="flex-shrink-0 whitespace-nowrap">上传AfSim数据</a-button>
+                  <!-- <a-button type="primary" :icon="h(UploadOutlined)"
+                    class="flex-shrink-0 whitespace-nowrap">上传AfSim数据</a-button> -->
                 </a-popover>
                 <a-popover v-model:open="visible" trigger="click" placement="bottom">
                   <template #content>

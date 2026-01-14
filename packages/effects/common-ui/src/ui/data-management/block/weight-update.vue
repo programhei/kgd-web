@@ -185,6 +185,13 @@ const handleTemplateDownload = () => {
 const handleFusionData = () => {
   emit('update:fusionData',{type: type.value,groupId: groupId.value})
 }
+// 获取专家名称
+const getExpertName = (groupId: any) => {
+  if (!groupId) return '-';
+  const expert = props.expertOptions?.find(item => item.value === String(groupId));
+  return expert ? expert.label : `专家${groupId}`;
+};
+
 // 表头
  const columns = ref([
           {
@@ -194,7 +201,12 @@ const handleFusionData = () => {
             width: 250,
             fixed: 'left'
           },
-
+          {
+            title: '专家',
+            dataIndex: 'groupId',
+            key: 'groupId',
+            width: 120
+          },
           {
             title: '权值',
             dataIndex: 'weight',
@@ -336,6 +348,9 @@ function getLevelColor  (level: number)  {
                 <span v-else-if="record.level === 4">│ └─ </span>
                 {{ text }}
               </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'groupId'">
+              {{ getExpertName(record.groupId) }}
             </template>
             <template v-else-if="column.dataIndex === 'weight'">
               <a-input-number
