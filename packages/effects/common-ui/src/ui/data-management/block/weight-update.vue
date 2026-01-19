@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, reactive, ref, h, toRaw, watch, onMounted, onUnmounted} from 'vue'
 
-import { UploadOutlined,SwapOutlined  } from '@ant-design/icons-vue';
+import { UploadOutlined,SwapOutlined, InboxOutlined, DownloadOutlined } from '@ant-design/icons-vue';
 import {
   Card,
   CardContent,
@@ -48,19 +48,43 @@ interface Props {
 //  默认值
 const props = defineProps<Props>();
 
-// 设置默认权值组（取当前可用列表的第一个）
+// 处理后的权值组选项（添加全部选项）
+const weightGroupWithAll = computed(() => {
+  const allOption = [{ label: '全部', value: '' }];
+  return allOption.concat(props.weightGroup || []);
+});
+
+// 处理后的专家选项（添加全部选项）
+const expertOptionsWithAll = computed(() => {
+  const allOption = [{ label: '全部', value: '' }];
+  return allOption.concat(props.expertOptions || []);
+});
+
+// 设置默认权值组（取全部选项）
 const setDefaultGroup = (list: Array<{ label: string; value: string }> = []) => {
-  const first = list?.[0]?.value;
-  if (first) {
-    type.value = String(first);
-  }
+  // 默认选择全部
+  type.value = '';
 };
 
-// 权值组选项变化时，自动重置为可用列表的第一个，确保登录后角色变化立刻生效
+// 权值组选项变化时，保持当前选择或重置为全部
 watch(
   () => props.weightGroup,
-  (list) => {
-    setDefaultGroup(list || []);
+  () => {
+    // 保持当前选择或重置为全部
+    if (!weightGroupWithAll.value.some(item => item.value === type.value)) {
+      type.value = '';
+    }
+  },
+  { immediate: true, deep: true },
+);
+
+// 专家选项变化时，确保当前选择有效
+watch(
+  () => props.expertOptions,
+  () => {
+    if (!expertOptionsWithAll.value.some(item => item.value === groupId.value)) {
+      groupId.value = '';
+    }
   },
   { immediate: true, deep: true },
 );
@@ -80,9 +104,7 @@ const radioValue = ref('sy')
 
 // 窗口高度响应式
 let windowHeight = ref(window.innerHeight);
-let tableHeight =  ref(0);
-// 计算表格高度为窗口高度的80%
-tableHeight = computed(() => windowHeight.value * 0.8);
+let tableHeight = computed(() => windowHeight.value * 0.8);
 // 处理窗口大小变化
 function handleResize() {
   windowHeight.value = window.innerHeight;
@@ -91,6 +113,8 @@ const {fileList, uploading, beforeUpload, onRemove, onUploadChange, onSubmit} = 
   emit('update:upload', {formData: fd,type: type.value,groupId: groupId.value})
 })
 
+// 弹出层可见性
+const visible = ref(false);
 
 onMounted(() => {
   // 监听窗口大小变化
@@ -104,31 +128,37 @@ onUnmounted(() => {
 
 
 // 展开的节点key
-let expandedKeys = ref(
-  []);
-// expandedKeys = computed(() => {
-//   // 递归函数获取所有节点id
-//   const getAllNodeIds = (tree, ids = []) => {
-//     if (!tree || !Array.isArray(tree)) return ids;
-
-//     tree.forEach(node => {
-//       if (node.id) {
-//         ids.push(node.id);
-//       }
-//       if (node.children && node.children.length > 0) {
-//         getAllNodeIds(node.children, ids);
-//       }
-//     });
-
-//     return ids;
-//   };
-//   return getAllNodeIds(props.treeData);
-// })
+let expandedKeys = ref([]);
 
 // 表格数据
-let tableData= ref([]);
-  tableData = computed(() => {
-  return props.treeData;
+const tableData = computed(() => {
+  if (!props.treeData || !Array.isArray(props.treeData)) {
+    return [];
+  }
+  
+  // 按照专家分组数据
+  const expertMap = new Map();
+  
+  // 遍历所有数据，按groupId分组
+  props.treeData.forEach(item => {
+    const groupId = String(item.groupId || 'default');
+    if (!expertMap.has(groupId)) {
+      // 创建专家节点
+      expertMap.set(groupId, {
+        id: `expert_${groupId}`,
+        name: getExpertName(groupId),
+        groupId: groupId,
+        weight: null,
+        level: 0,
+        children: [],
+      });
+    }
+    // 添加当前项到对应专家的子节点中
+    expertMap.get(groupId).children.push(item);
+  });
+  
+  // 转换为数组返回
+  return Array.from(expertMap.values());
 })
 
 // 展开数据绑定
@@ -149,9 +179,47 @@ function handleExpand  (expanded: boolean, record: any)  {
 
 // 查询权值数据
 const handleLoadData = () => {
-  emit('update:loadData',
-  {type: type.value,groupId: groupId.value}
-  )
+  // 当权值选择"全部"时，需要分别获取主观权值和客观权值数据
+  if (!type.value) {
+    // 主观权值类型
+    const subjectiveType = '0';
+    // 客观权值类型
+    const objectiveType = '1';
+    
+    // 构建查询参数对象
+    const subjectiveParams: any = {
+      type: subjectiveType
+    };
+    
+    const objectiveParams: any = {
+      type: objectiveType
+    };
+    
+    // 如果有专家筛选条件，添加到参数中
+    if (groupId.value) {
+      subjectiveParams.groupId = groupId.value;
+      objectiveParams.groupId = groupId.value;
+    }
+    
+    // 传递特殊标记，告知父组件需要获取全部权值数据
+    emit('update:loadData', {
+      isAll: true,
+      subjectiveParams,
+      objectiveParams
+    });
+  } else {
+    // 选择特定权值类型时，正常传递参数
+    const params: any = {
+      type: type.value
+    };
+    
+    // 仅当groupId有值时才添加groupId参数，否则不添加，以便加载所有专家数据
+    if (groupId.value) {
+      params.groupId = groupId.value;
+    }
+    
+    emit('update:loadData', params);
+  }
 }
 // 重置数据
 const handleResetData = () => {
@@ -187,9 +255,10 @@ const handleFusionData = () => {
 }
 // 获取专家名称
 const getExpertName = (groupId: any) => {
-  if (!groupId) return '-';
-  const expert = props.expertOptions?.find(item => item.value === String(groupId));
-  return expert ? expert.label : `专家${groupId}`;
+  if (!groupId && groupId !== 0) return '-';
+  const groupIdStr = String(groupId);
+  const expert = props.expertOptions?.find(item => item.value === groupIdStr);
+  return expert ? expert.label : `专家${groupIdStr}`;
 };
 
 // 表头
@@ -231,14 +300,13 @@ function handleWeightChange (newWeight: number, record: any)  {
   // 更新权值
   emit('update:updateWeightTree',
     {groupId: record.groupId , id: record.id, weight: newWeight}
-  )
-  // 查询权值
-  emit('update:loadData',{type: type.value,groupId: groupId.value})
+  );
 };
 
 //设置等级颜色
 function getLevelColor  (level: number)  {
   const colors = {
+    0: 'black',
     1: 'blue',
     2: 'green',
     3: 'purple',
@@ -259,7 +327,7 @@ function getLevelColor  (level: number)  {
             <a-form-item label="权值">
               <a-select
                 style="width: 200px"
-                :options="props.weightGroup || []"
+                :options="weightGroupWithAll"
                 v-model:value="type"
                 placeholder="请选权值组"
               >
@@ -268,7 +336,7 @@ function getLevelColor  (level: number)  {
             <a-form-item label="专家" >
               <a-select
                 style="width: 200px"
-                :options=" props.expertOptions || []"
+                :options="expertOptionsWithAll"
                 v-model:value="groupId"
                 placeholder="请选择专家"
               >
@@ -342,7 +410,8 @@ function getLevelColor  (level: number)  {
           <template #bodyCell="{ column, record, text }">
             <template v-if="column.dataIndex === 'name'">
               <span :class="`level-${record.level}`">
-                <span v-if="record.level === 1"></span>
+                <span v-if="record.level === 0"></span>
+                <span v-else-if="record.level === 1"></span>
                 <span v-else-if="record.level === 2">├─ </span>
                 <span v-else-if="record.level === 3">│ └─ </span>
                 <span v-else-if="record.level === 4">│ └─ </span>
@@ -354,6 +423,7 @@ function getLevelColor  (level: number)  {
             </template>
             <template v-else-if="column.dataIndex === 'weight'">
               <a-input-number
+                v-if="record.level > 0"
                 :value="text"
                 :min="0"
                 :max="1"
@@ -362,6 +432,7 @@ function getLevelColor  (level: number)  {
                 size="small"
                 @change="handleWeightChange($event, record)"
               />
+              <span v-else>-</span>
             </template>
             <template v-else-if="column.dataIndex === 'level'">
               <a-tag :color="getLevelColor(record.level)"> 层级 {{ text }} </a-tag>

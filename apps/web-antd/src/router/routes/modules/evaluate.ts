@@ -50,6 +50,38 @@ const routes: RouteRecordRaw[] = [
     path: '/performance-accuracy',
     children: [
       {
+        component: BasicLayout,
+        meta: {
+          icon: 'lucide:square-terminal',
+          title: $t('page.performanceAccuracy.flightSimulation'),
+        },
+        name: 'FlightSimulation',
+        path: 'flight-simulation',
+        redirect: 'flight-control-system',
+        children: [
+          {
+            name: 'FlightControlSystem',
+            path: 'flight-control-system',
+            component: () => import('#/views/evaluate/performance-accuracy/flight-control-system.vue'),
+            meta: {
+              affixTab: true,
+              icon: 'lucide:chart-line',
+              title: $t('page.performanceAccuracy.flightControlSystem'),
+            },
+          },
+          {
+            name: 'EngineFlightPerformance',
+            path: 'engine-flight-performance',
+            component: () => import('#/views/evaluate/performance-accuracy/engine-flight-performance.vue'),
+            meta: {
+              affixTab: true,
+              icon: 'lucide:chart-line',
+              title: $t('page.performanceAccuracy.engineFlightPerformance'),
+            },
+          },
+        ],
+      },
+      {
         name: 'FlightSimulationSystem',
         path: '/flight-simulation-system',
         component: () => import('#/views/evaluate/performance-accuracy/flight-simulation-system.vue'),
@@ -77,6 +109,16 @@ const routes: RouteRecordRaw[] = [
           affixTab: true,
           icon: 'lucide:server-crash',
           title: $t('page.performanceAccuracy.missileSimulationSystem'),
+        },
+      },
+      {
+        name: 'PerformanceAccuracyScore',
+        path: '/performance-accuracy-score',
+        component: () => import('#/views/evaluate/performance-accuracy/performance-accuracy-score.vue'),
+        meta: {
+          affixTab: true,
+          icon: 'lucide:chart-bar',
+          title: $t('page.performanceAccuracy.performanceAccuracyScore'),
         },
       },
       {

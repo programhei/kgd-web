@@ -109,37 +109,71 @@ const loading = ref(false)
 // 查询权值数据
 const handleLoadData = (pager: any) => {
   loading.value = true
-  selectWeightTree(pager)
-    .then(res => {
-    treeData.value = res.treeData.data.list
-  })
-    .finally(() => {
-      loading.value = false
-    })
+  
+  // 处理全部权值请求
+  if (pager.isAll) {
+    // 并行请求主观权值和客观权值数据
+    Promise.all([
+      selectWeightTree(pager.subjectiveParams),
+      selectWeightTree(pager.objectiveParams)
+    ])
+      .then(([subjectiveRes, objectiveRes]) => {
+        // 获取主观权值数据
+        const subjectiveData = subjectiveRes.treeData.data.list || [];
+        // 获取客观权值数据
+        const objectiveData = objectiveRes.treeData.data.list || [];
+        
+        // 合并主观权值和客观权值数据
+        treeData.value = [...subjectiveData, ...objectiveData];
+      })
+      .finally(() => {
+        loading.value = false
+      })
+  } else {
+    // 正常请求单个权值类型数据
+    selectWeightTree(pager)
+      .then(res => {
+        treeData.value = res.treeData.data.list
+      })
+      .finally(() => {
+        loading.value = false
+      })
+  }
 }
 
 // 初始化权值数据
 const handleInitWeightData= () => {
   loading.value = true
-  selectUserIds().then(res => {
-    // 后端返回的 data 直接是数组（List<Long>），需要转换为 { label, value } 格式
-    if (res && Array.isArray(res)) {
-
-      expertOptions.value = res.map((id: number) => ({
-        label: `专家${id}`,
-        value: String(id)
-      }))
-      console.log(expertOptions.value)
-    } else {
-      expertOptions.value = []
-    }
-  })
-  selectWeightTree({type:0
-  }).then(res => {
-    treeData.value = res.treeData.data.list
-  }).finally(() => {
-    loading.value = false
-  })
+  
+  // 并行请求用户列表和权值数据
+  Promise.all([
+    selectUserIds(),
+    // 初始化时请求全部权值数据
+    Promise.all([
+      selectWeightTree({type: '0'}), // 主观权值
+      selectWeightTree({type: '1'})  // 客观权值
+    ])
+  ])
+    .then(([userRes, weightRes]) => {
+      // 处理专家选项
+      if (userRes && Array.isArray(userRes)) {
+        expertOptions.value = userRes.map((id: number) => ({
+          label: `专家${id}`,
+          value: String(id)
+        }))
+        console.log(expertOptions.value)
+      } else {
+        expertOptions.value = []
+      }
+      
+      // 合并主观权值和客观权值数据
+      const subjectiveData = weightRes[0].treeData.data.list || [];
+      const objectiveData = weightRes[1].treeData.data.list || [];
+      treeData.value = [...subjectiveData, ...objectiveData];
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
 // 文件上传

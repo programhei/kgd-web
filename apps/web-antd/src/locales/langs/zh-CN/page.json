@@ -19,8 +19,13 @@
   "performanceAccuracy": {
     "title": "性能准确度评估",
     "flightSimulationSystem": "飞行仿真系统性能准确度",
-    "radarSimulationSystem": "雷达仿真系统性能准确度",
-    "missileSimulationSystem": "导弹仿真系统性能准确度",
+    "flightSimulation": "飞行仿真",
+    "flightSimulationSystemGroup": "飞行仿真系统",
+    "flightControlSystem": "飞行控制系统",
+    "engineFlightPerformance": "发动机与飞行性能",
+    "radarSimulationSystem": "雷达仿真系统",
+    "missileSimulationSystem": "导弹仿真系统",
+    "performanceAccuracyScore": "性能准确度评分",
     "simulationPerformanceAccuracyNew": "仿真系统性能准确度【新】",
     "algorithmManage": "算法配置管理",
     "missileTrajectory": "弹道精准度评估"

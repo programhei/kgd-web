@@ -14,8 +14,13 @@
   "performanceAccuracy": {
     "title": "Performance Accuracy Assessment",
     "flightSimulationSystem": "Flight Simulation System Performance Accuracy",
-    "radarSimulationSystem": "Radar Simulation System Performance Accuracy",
-    "missileSimulationSystem": "Missile Simulation System Performance Accuracy",
+    "flightSimulation": "Flight Simulation",
+    "flightSimulationSystemGroup": "Flight Simulation System",
+    "flightControlSystem": "Flight Control System",
+    "engineFlightPerformance": "Engine and Flight Performance",
+    "radarSimulationSystem": "Radar Simulation System",
+    "missileSimulationSystem": "Missile Simulation System",
+    "performanceAccuracyScore": "Performance Accuracy Score",
     "simulationPerformanceAccuracyNew": "Simulation System Performance Accuracy [New]",
     "algorithmManage": "Algorithm Configuration Management",
     "missileTrajectory": "Missile Trajectory Accuracy Assessment"
